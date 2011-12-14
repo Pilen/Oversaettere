@@ -1,8 +1,8 @@
 %token <string*(int*int)> ID STRINGCONST
 %token <int*(int*int)> NUM
 %token <char*(int*int)> CHARCONST
-%token <(int*int)> IF THEN ELSE INT CHAR RETURN WHILE REF
-%token <(int*int)> PLUS MINUS LESS ASSIGN EQUAL
+%token <(int*int)> IF ELSE INT CHAR RETURN WHILE REF
+%token <(int*int)> PLUS MINUS LESS EQUAL ASSIGN
 %token <(int*int)> LPAR RPAR LBRACE RBRACE LBRACK RBRACK
 %token <(int*int)> COMMA SEMICOLON EOF
 
@@ -10,6 +10,7 @@
 %right ASSIGN
 %left LESS
 %left PLUS MINUS
+%left EQUAL
 
 %start Prog
 %type <S100.Prog> Prog
@@ -23,69 +24,74 @@
 %type <S100.Exp list> Exps Exps1
 %type <S100.Lval> Lval
 %type <S100.Stat> Stat
-
+%type <S100.Stat list> Stats
 %%
 
-Prog :	  FunDecs EOF	{ $1 }
-;
-
+Prog :    FunDecs EOF	{ $1 };
 
 FunDecs : Type Sid LPAR Decs RPAR Stat FunDecs
 			{ ($1, $2, $4, $6, $3) :: $7 }
-	|		{ [] }
-;
+	|		{ [] };
 
-Type :	  INT		{ S100.Int $1 }
-;
+Type :	  INT		{ S100.Int $1 };
+
+Type :    CHAR          { S100.Char $1 };
 
 Decs :	  Decs1 Dec	{ $1 @ [$2] }
-	|		{ [] }
-;
+	|		{ [] };
 
 Decs1 :	  Decs1 Dec SEMICOLON
 			{ $1 @ [$2] }
-	|		{ [] }
-;
+	|		{ [] };
 
-Dec :	  Type Sids	{ ($1, $2) }
-;
+Dec :	  Type Sids	{ ($1, $2) };
 
-Sid :	  ID		{ S100.Val $1 }
-;
 
 Sids :	  Sid COMMA Sids
 			{ $1 :: $3 }
-	| Sid		{ [$1] }
+	| Sid		{ [$1] };
+
+Sid :	  ID		{ S100.Val $1 }
+        | REF ID        { S100.Ref $2 };
+
+Stats :   Stat Stats    { $1 :: $2}
+        |               { [] };
 
 Stat :	  Exp SEMICOLON	{ S100.EX $1 }
 	| IF LPAR Exp RPAR %prec ELSE Stat
 			{ S100.If ($3,$5,$1) }
-	| IF LPAR Exp RPAR Stat ELSE Stat
-			{ S100.IfElse ($3,$5,$7,$1) }
-	| RETURN Exp SEMICOLON
-			{ S100.Return ($2,$1) }
-;
+        | IF LPAR Exp RPAR Stat ELSE Stat
+                        { S100.IfElse ($3,$5,$7,$1) }
+        | WHILE LPAR Exp RPAR Stat
+                        { S100.While ($3, $5, $1}
+        | RETURN Exp SEMICOLON
+                        { S100.Return ($2,$1) }
+        | LBRACK Decs1 Stats RBRACK
+                        { S100.Block ($2, $3, $1) };
 
-Exp :	  NUM		{ S100.NumConst $1 }
-	| Lval		{ S100.LV $1 }
-	| Lval ASSIGN Exp
-			{ S100.Assign ($1,$3,$2) }
+
+Exp :     NUM           { S100.NumConst $1 }
+        | CHARCONST     { S100.CharConst $1 }
+        | STRINGCONST   { S100.StringConst $1 }
+        | Lval          { S100.LV $1 }
+        | Lval ASSIGN Exp
+                        { S100.Assign ($1,$3,$2) }
 	| Exp PLUS Exp	{ S100.Plus ($1, $3, $2) }
 	| Exp MINUS Exp	{ S100.Minus ($1, $3, $2) }
 	| Exp LESS Exp	{ S100.Less ($1, $3, $2) }
+        | Exp EQUAL Exp { S100.Equal ($1, $3, $2) }
 	| ID LPAR Exps RPAR
 			{ S100.Call (#1 $1, $3, $2) }
-	| LPAR Exp RPAR
-			{ $2 }
-;
+	| LPAR Exp RPAR { $2 }
 
 Exps :			{ [] }
-	| Exps1		{ $1 }
-;
+	| Exps1		{ $1 };
 
 Exps1:	  Exp		{ [$1] }
 	| Exp COMMA Exps
-			{ $1 :: $3 }
+			{ $1 :: $3 };
 
 Lval :	  ID		{ S100.Var $1 }
-;
+        | ID REF        { S100.Deref $1 }
+        | ID LBRACK Exp RBRACK
+                        { S100.Lookup (#1 $1, $3, #2 $1) }
