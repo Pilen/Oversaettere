@@ -36,29 +36,29 @@ fun action_23 lexbuf = (
 and action_22 lexbuf = (
  Parser.EOF (getPos lexbuf) )
 and action_21 lexbuf = (
- Parser.RETURN (getpos lexbuf) )
+ Parser.RETURN (getPos lexbuf) )
 and action_20 lexbuf = (
  Parser.SEMICOLON (getPos lexbuf) )
 and action_19 lexbuf = (
  Parser.COMMA (getPos lexbuf) )
 and action_18 lexbuf = (
- Parser.RBRACK (getpos lexbuf))
+ Parser.RBRACK (getPos lexbuf))
 and action_17 lexbuf = (
- Parser.LBRACK (getpos lexbuf))
+ Parser.LBRACK (getPos lexbuf))
 and action_16 lexbuf = (
- Parser.RBRACE (getpos lexbuf))
+ Parser.RBRACE (getPos lexbuf))
 and action_15 lexbuf = (
- Parser.LBRACE (getpos lexbuf))
+ Parser.LBRACE (getPos lexbuf))
 and action_14 lexbuf = (
  Parser.RPAR (getPos lexbuf) )
 and action_13 lexbuf = (
  Parser.LPAR (getPos lexbuf) )
 and action_12 lexbuf = (
- Parser.EQUAL (getpos lexbuf))
+ Parser.EQUAL (getPos lexbuf))
 and action_11 lexbuf = (
  Parser.ASSIGN (getPos lexbuf) )
 and action_10 lexbuf = (
- Parser.REF (getPos lexbuf)
+ Parser.REF (getPos lexbuf) )
 and action_9 lexbuf = (
  Parser.LESS (getPos lexbuf) )
 and action_8 lexbuf = (

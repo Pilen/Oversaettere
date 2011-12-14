@@ -57,18 +57,18 @@ rule Token = parse
   | `-`                 { Parser.MINUS (getPos lexbuf) }
   | `<`                 { Parser.LESS (getPos lexbuf) }
   | `*` [`a`-`z` `A`-`Z`] [`a`-`z` `A`-`Z` `0`-`9` `_`]*
-                        { Parser.REF (getPos lexbuf}
+                        { Parser.REF (getPos lexbuf) }
   | `=`                 { Parser.ASSIGN (getPos lexbuf) }
-  | `=` `=`             { Parser.EQUAL (getpos lexbuf)}
+  | `=` `=`             { Parser.EQUAL (getPos lexbuf)}
   | `(`                 { Parser.LPAR (getPos lexbuf) }
   | `)`                 { Parser.RPAR (getPos lexbuf) }
-  | `{`                 { Parser.LBRACE (getpos lexbuf)}
-  | `}`                 { Parser.RBRACE (getpos lexbuf)}
-  | `[`                 { Parser.LBRACK (getpos lexbuf)}
-  | `]`                 { Parser.RBRACK (getpos lexbuf)}
+  | `{`                 { Parser.LBRACE (getPos lexbuf)}
+  | `}`                 { Parser.RBRACE (getPos lexbuf)}
+  | `[`                 { Parser.LBRACK (getPos lexbuf)}
+  | `]`                 { Parser.RBRACK (getPos lexbuf)}
   | `,`                 { Parser.COMMA (getPos lexbuf) }
   | `;`                 { Parser.SEMICOLON (getPos lexbuf) }
-  | `r``e``t``u``r``n`  { Parser.RETURN (getpos lexbuf) }
+  | `r``e``t``u``r``n`  { Parser.RETURN (getPos lexbuf) }
   | eof                 { Parser.EOF (getPos lexbuf) }
   | _                   { lexerError lexbuf "Illegal symbol in input" }
 

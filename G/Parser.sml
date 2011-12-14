@@ -369,7 +369,7 @@ val d__3__ = peekVal 2 : S100.Exp
 val d__4__ = peekVal 1 : (int*int)
 val d__5__ = peekVal 0 : S100.Stat
 in
-( S100.While ((d__3__), (d__5__), (d__1__)) end : S100.Stat))
+( S100.While ((d__3__), (d__5__), (d__1__)) ) end : S100.Stat))
 ;
 (* Rule 21, file Parser.grm, line 68 *)
 val _ = update_ yyact 21
@@ -534,7 +534,7 @@ val d__2__ = peekVal 2 : (int*int)
 val d__3__ = peekVal 1 : S100.Exp
 val d__4__ = peekVal 0 : (int*int)
 in
-( S100.Lookup (#1 (d__1__), (d__3__), #2 (d__1__)) ) end : S100.Lval))
+( S100.Lookup (#1 (d__1__), (d__3__), (d__2__)) ) end : S100.Lval))
 ;
 (* Entry Prog *)
 val _ = update_ yyact 41 (fn () => raise yyexit (peekVal 0));
