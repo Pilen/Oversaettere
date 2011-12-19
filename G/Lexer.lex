@@ -41,7 +41,7 @@ rule Token = parse
                                NONE   => lexerError lexbuf "Bad integer!"
                              | SOME i => Parser.NUM (i, getPos lexbuf) }
 
-| `'` [` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`]) `'` 
+  | `'` [` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`]) `'`
                         { case Char.fromCString (getLexeme lexbuf) of
                                NONE   => lexerError lexbuf "Bad char!"
                              | SOME i => Parser.CHARCONST (i, getPos lexbuf) }

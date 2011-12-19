@@ -1,7 +1,7 @@
 signature Type =
 sig
 
-  datatype Type = Int
+  datatype Type = Int | Char | IntRef | CharRef
 
   exception Error of string*(int*int)
 

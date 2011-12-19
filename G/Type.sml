@@ -6,13 +6,16 @@ struct
 
   type pos = int*int
 
-  datatype Type = Int
+  datatype Type = Int | Char | IntRef | CharRef
 
   fun convertType (S100.Int _) = Int
+    | convertType (S100.Char _) = Int
 
   fun getName (S100.Val (f,p)) = f
+    | getName (S100.Ref (f,p)) = f
 
   fun getType t (S100.Val (f,p)) = convertType t
+    | getType t (S100.Ref (f,p)) = convertType t
 
   (* lookup function for symbol table as list of (name,value) pairs *)
   fun lookup x []
@@ -24,6 +27,8 @@ struct
   fun checkExp e vtable ftable =
     case e of
       S100.NumConst _ => Int
+    | S100.CharConst _ => Int
+    | S100.StringConst _ => CharRef
     | S100.LV lv => checkLval lv vtable ftable
     | S100.Assign (lv,e1,p) =>
         let
@@ -36,11 +41,26 @@ struct
     | S100.Plus (e1,e2,p) =>
         (case (checkExp e1 vtable ftable,
 	       checkExp e2 vtable ftable) of
-	   (Int, Int) => Int)
+	   (Int, Int)     => Int
+         | (Int, IntRef)  => IntRef
+         | (IntRef, Int)  => IntRef
+         | (Int, CharRef) => CharRef
+         | (CharRef, Int) => CharRef
+         | (_,_) => raise Error ("Type mismatch in addition",p))
     | S100.Minus (e1,e2,p) =>
         (case (checkExp e1 vtable ftable,
 	       checkExp e2 vtable ftable) of
-	   (Int, Int) => Int)
+	   (Int, Int) => Int
+         | (Int,IntRef) => raise Error ("Type mismatch in substraction",p)
+         | (Int,CharRef) => raise Error ("Type mismatch in substraction",p)
+         | (IntRef,Int) => IntRef
+         | (CharRef,Int) => CharRef
+         | (IntRef,IntRef) => Int
+         | (CharRef,CharRef) => Int
+         | (_,_) => raise Error ("Type mismatch in substraction",p))
+    | S100.Equal (e1,e2,p) =>
+        if checkExp e1 vtable ftable = checkExp e2 vtable ftable
+        then Int else raise Error ("Can't compare different types",p)
     | S100.Less (e1,e2,p) =>
         if checkExp e1 vtable ftable = checkExp e2 vtable ftable
 	then Int else raise Error ("Can't compare different types",p)
@@ -61,12 +81,26 @@ struct
         (case lookup x vtable of
 	   SOME t => t
 	 | NONE => raise Error ("Unknown variable: "^x,p))
+    | S100.Deref (x,p) =>
+      (case lookup x vtable of
+         SOME t => t
+       | NONE   => raise Error ("Unknown variable: "^x,p))
+    | S100.Lookup (x,e,p) =>
+      (case lookup x vtable of
+         SOME t => if checkExp e vtable ftable = Int
+                   then t
+                   else raise Error ("Index not a number",p)
+       | NONE => raise Error ("Unknown variable: "^x,p))
 
   fun extend [] _ vtable = vtable
     | extend (S100.Val (x,p)::sids) t vtable =
-        (case lookup x vtable of
+      (case lookup x vtable of
 	   NONE => extend sids t ((x,t)::vtable)
 	 | SOME _ => raise Error ("Double declaration of "^x,p))
+    | extend (S100.Ref (x,p)::sids) t vtable =
+      (case lookup x vtable of
+         NONE => extend sids t ((x,t)::vtable)
+       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
 
   fun checkDecs [] = []
     | checkDecs ((t,sids)::ds) =
@@ -74,20 +108,45 @@ struct
 
   fun checkStat s vtable ftable =
     case s of
-      S100.EX e => (checkExp e vtable ftable; ())
+      S100.EX e => (checkExp e vtable ftable; false)
     | S100.If (e,s1,p) =>
         if checkExp e vtable ftable = Int
-	then checkStat s1 vtable ftable
+	then (checkStat s1 vtable ftable; false)
 	else raise Error ("Condition should be integer",p)
     | S100.IfElse (e,s1,s2,p) =>
+      let
+        val r1 = checkStat s1 vtable ftable
+        val r2 = checkStat s2 vtable ftable
+      in
         if checkExp e vtable ftable = Int
-	then (checkStat s1 vtable ftable;
-	      checkStat s2 vtable ftable)
+        then r1 andalso r2
 	else raise Error ("Condition should be integer",p)
-    | S100.Return (e,p) => ()
+      end
+    | S100.While (e,s,p) =>
+      if checkExp e vtable ftable = Int
+      then (checkStat s vtable ftable; false)
+      else raise Error ("Condition should be integer",p)
+    | S100.Return (e,p) => true
+
+    | S100.Block ([],[],p) => false
+    | S100.Block ([], s::ss,p) =>
+      let
+        val r1 = checkStat s vtable ftable
+        val r2 = checkStat (S100.Block ([], ss, p)) vtable ftable
+      in
+        r1 orelse r2
+      end
+    | S100.Block (ds, ss,p) =>
+      let
+        val vtable' = checkDecs ds
+      in
+        checkStat (S100.Block([], ss, p)) vtable' ftable
+      end
 
   fun checkFunDec (t,sf,decs,body,p) ftable =
-        checkStat body (checkDecs decs) ftable
+        if checkStat body (checkDecs decs) ftable
+        then ()
+        else raise Error ("Function needs valid return statements",p)
 
   fun getFuns [] ftable = ftable
     | getFuns ((t,sf,decs,_,p)::fs) ftable =
@@ -103,8 +162,12 @@ struct
 
   fun checkProg fs =
     let
-      val ftable = getFuns fs [("getint",([],Int)),
-			       ("putint",([Int],Int))]
+      val ftable = getFuns fs [("walloc",([Int],IntRef)),
+                               ("balloc",([Int],CharRef)),
+                               ("getint",([],Int)),
+                               ("getstring",([Int],CharRef)),
+			       ("putint",([Int],Int)),
+                               ("putstring",([CharRef],CharRef))]
     in
       List.app (fn f => checkFunDec f ftable) fs;
       case lookup "main" ftable of
