@@ -1,4 +1,4 @@
-(* Compiler for 100 *)
+(* Compile  r for 100 *)
 (* Compile by mosmlc -c Compiler.sml *)
 
 structure Compiler :> Compiler =
@@ -38,6 +38,27 @@ struct
 
   datatype Location = Reg of string (* value is in register *)
 
+  fun extend [] _ vtable = vtable
+    | extend (S100.Val (x,p)::sids) t vtable =
+      (case lookup x vtable of
+	   NONE => 
+           let y=newName()
+           in extend sids t ((x,(t,x^y)::vtable)
+           end
+	 | SOME _ => raise Error ("Double declaration of "^x,p))
+    | extend (S100.Ref (x,p)::sids) t vtable =
+      (case lookup x vtable of
+         NONE => 
+         let
+         in extend sids t ((x,(t,x^y))::vtable)
+         end
+       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+
+  fun compileDecs [] = []
+    | checkDecs ((t,sids)::ds) =
+        extend (List.rev sids) (convertType t) (checkDecs ds)
+
+
   (* compile expression *)
   fun compileExp e vtable ftable place =
     case e of
@@ -48,6 +69,8 @@ struct
 	  (Type.Int,
 	   [Mips.LUI (place, makeConst (n div 65536)),
 	   Mips.ORI (place, place, makeConst (n mod 65536))])
+    | S100.CharConst (c,pos) => []
+    | S100.StringConst (s,pos) => []
     | S100.LV lval =>
         let
 	  val (code,ty,loc) = compileLval lval vtable ftable
@@ -101,6 +124,19 @@ struct
 	in
 	  (Type.Int, code1 @ code2 @ [Mips.SLT (place,t1,t2)])
 	end
+    | S100.Equal (e1,e2,pos) =>
+      let
+        val t1 = "_equal1_"^newName()
+        val t2 = "_equal2_"^newName()
+        val t3 = "_equal3_"^newName()
+        val (_,code1) = compileExp e1 vtable ftable t1
+        val (_,code2) = compileExp e2 vtable ftable t2
+      in
+        (Type.Int, code1 @ code2 @ 
+                   [Mips.SLT (t3, t2, t1),
+                    Mips.SLT (place, t1, t2),
+                    Mips.ADD (place, place, t3),
+                    Mips.XORI (place, place, "1")])
     | S100.Call (f,es,pos) =>
 	let
 	  val rTy = case lookup f ftable of
@@ -108,6 +144,7 @@ struct
 		    | NONE => raise Error ("unknown function "^f,pos)
 	  val (code1,args) = compileExps es vtable ftable
 	  fun moveArgs [] r = ([],[],0)
+
 	    | moveArgs (arg::args) r =
 	        let
 		  val (code,parRegs,stackSpace) = moveArgs args (r+1)
@@ -178,6 +215,33 @@ struct
 	  code0 @ [Mips.BEQ (t,"0",l1)] @ code1
 	  @ [Mips.J l2, Mips.LABEL l1] @ code2 @ [Mips.LABEL l2]
 	end
+    | S100.While (e,s,p) =>
+      let
+        val t = "_while_"^newName()
+        val lb = "_block_"^newName()
+        val lt = "_test_"^newName()
+        val le = "_exit_"^newName()
+
+        val (_,code0) = compileExp e vtable ftable t
+        val code1 = compileStat s vtable ftable exitLabel
+      in
+        [Mips.J lt, Mips.LABEL lb] @ code1 @ [Mips.LABEL lt] @
+        code0 @ [Mips.BNE (t,"0",lb),Mips.LABEL le]
+      end
+    | S100.Block ([],[],p) => []
+    | S100.Block ([],s::ss,p) =>
+      let
+        val code0 checkStat s vtable ftable exitLabel
+        val code1 checkStat (S100.Block ([], ss, p)) vtable ftable exitLabel
+      in
+        code0 @ code1
+      end
+    | S100.Block (ds,ss,p) =>
+      let
+        val vtable' = compileDecs ds
+      in
+        checkStat (S100.Block([],ss,p) vtable' ftable exitLabel
+      end
     | S100.Return (e,p) =>
         let
 	  val t = "_return_"^newName()
@@ -260,8 +324,12 @@ struct
   fun compile funs =
     let
       val ftable =
-	  Type.getFuns funs [("getint",([],Type.Int)),
-			     ("putint",([Type.Int],Type.Int))]
+	  Type.getFuns funs [("walloc",([Int],IntRef)),
+                             ("balloc",([Int],CharRef)),
+                             ("getint",([],Int)),
+                             ("getstring",([Int],CharRef)),
+			     ("putint",([Int],Int)),
+                             ("putstring",([CharRef],CharRef))]
       val funsCode = List.concat (List.map (compileFun ftable) funs)
     in
       [Mips.TEXT "0x00400000",
@@ -272,7 +340,7 @@ struct
          Mips.SYSCALL]            (* exit *)
       @ funsCode		  (* code for functions *)
 
-      @ [Mips.LABEL "putint",     (* putint function *)
+      @ [Mips.LABEL "putint",     (* putint function : prints int in $2 *)
 	 Mips.ADDI(SP,SP,"-8"),
 	 Mips.SW ("2",SP,"0"),    (* save used registers *)
 	 Mips.SW ("4",SP,"4"),
@@ -291,6 +359,44 @@ struct
 	 Mips.LI ("2","5"),       (* read_int syscall *)
 	 Mips.SYSCALL,
 	 Mips.JR (RA,[]),
+
+
+
+
+
+         Mips.LABEL "putstring"   (* putstring function : prints string starting in $2*)
+         Mips.MOVE ("4","2"),
+         Mips.LI ("2","4"),       (* print_string syscall *)
+         Mips.SYSCALL,
+         Mips.LI ("2","4"),       (* print_string syscall *)
+	 Mips.LA("4","_cr_"),
+	 Mips.SYSCALL,            (* write CR *)
+	 Mips.JR (RA,[]),
+
+         mips.label "getstring",
+         mips.jal (
+
+         mips.label "walloc",     (* walloc function : ($2:int) -> ($2:IntRef) *)
+         mips.sll ("2","2","2"),
+         mips.move ("4","2"),
+         mips.li ("2","9"),
+         mips.syscall
+         mips.jr (ra,[]),
+
+
+         mips.label "balloc",     (* balloc function : ($2:int) -> ($2:CharRef) *)
+         mips.move ("4","2"),
+         mips.li ("2","9"),
+         mips.syscall
+         mips.jr (ra,[]),
+
+(*
+         .data
+     ref:
+         .space n*4
+         .text
+*)
+         
 
 	 Mips.DATA "",
 	 Mips.ALIGN "2",

@@ -1,0 +1,20 @@
+
+LEXER:
+Riv " og ' af strengkonstanter
+
+TYPETJEKKER:
+kontroller at deklarationer ikke kan foregå fleregange
+Næstnederste paragraf på side 7
+
+
+korrektehed for lval, typeerklæringer (lookups kan vidst give char?)
+
+OVERSÆTTER:
+Framepointer skal ligge i register 30 ikke 25, register 25 er et temporary
+
+
+Tvivler på vi skal lege med:
+Branch delay slots?
+Delayed loads
+
+Hvordan er endian?

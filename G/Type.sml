@@ -106,17 +106,17 @@ struct
     | checkDecs ((t,sids)::ds) =
         extend (List.rev sids) (convertType t) (checkDecs ds)
 
-  fun checkStat s vtable ftable =
+  fun checkStat s vtable ftable returntype =
     case s of
       S100.EX e => (checkExp e vtable ftable; false)
     | S100.If (e,s1,p) =>
         if checkExp e vtable ftable = Int
-	then (checkStat s1 vtable ftable; false)
+	then (checkStat s1 vtable ftable returntype; false)
 	else raise Error ("Condition should be integer",p)
     | S100.IfElse (e,s1,s2,p) =>
       let
-        val r1 = checkStat s1 vtable ftable
-        val r2 = checkStat s2 vtable ftable
+        val r1 = checkStat s1 vtable ftable returntype
+        val r2 = checkStat s2 vtable ftable returntype
       in
         if checkExp e vtable ftable = Int
         then r1 andalso r2
@@ -124,15 +124,17 @@ struct
       end
     | S100.While (e,s,p) =>
       if checkExp e vtable ftable = Int
-      then (checkStat s vtable ftable; false)
+      then (checkStat s vtable ftable returntype; false)
       else raise Error ("Condition should be integer",p)
-    | S100.Return (e,p) => true
+    | S100.Return (e,p) => if checkExp e vtable ftable = returntype
+                           then true
+                           else raise Error ("Returned value not of functions returntype",p)
 
     | S100.Block ([],[],p) => false
     | S100.Block ([], s::ss,p) =>
       let
-        val r1 = checkStat s vtable ftable
-        val r2 = checkStat (S100.Block ([], ss, p)) vtable ftable
+        val r1 = checkStat s vtable ftable returntype
+        val r2 = checkStat (S100.Block ([], ss, p)) vtable ftable returntype
       in
         r1 orelse r2
       end
@@ -140,11 +142,11 @@ struct
       let
         val vtable' = checkDecs ds
       in
-        checkStat (S100.Block([], ss, p)) vtable' ftable
+        checkStat (S100.Block([], ss, p)) vtable' ftable returntype
       end
 
   fun checkFunDec (t,sf,decs,body,p) ftable =
-        if checkStat body (checkDecs decs) ftable
+        if checkStat body (checkDecs decs) ftable (convertType t)
         then ()
         else raise Error ("Function needs valid return statements",p)
 
