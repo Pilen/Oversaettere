@@ -9,7 +9,9 @@ exception error of string
 
 exception not_colourable of string
 
-(* Funktions to implement naive sets of strings *)
+val spilledVars = ref []
+
+(* Functions to implement naive sets of strings *)
 
 val emptyset = []
 
@@ -234,6 +236,18 @@ and findMoves1 [] r = []
 
 (* sorts by number of conflicts, but with numeric registers last *)
 
+fun be4 (a, ac) (b, bc) =
+      case (numerical a, numerical b) of
+        (true,true) => a<=b
+      | (true,false) => false
+      | (false,true) => true
+      | (false,false) =>
+          (case (member a (!spilledVars), member b (!spilledVars)) of
+	     (false, false) => length ac <= length bc
+	   | (true, false) => false
+	   | (false,true) => true
+	   | (true,true) => length ac <= length bc)
+
 fun sortByOrder [] = []
   | sortByOrder (g : (string * 'b list) list) =
      let fun split [] = ([],[])
@@ -243,9 +257,7 @@ fun sortByOrder [] = []
                in (rev2 l g3, g2) end
          and ascending a [] l = (a::l,[])
            | ascending a (g as (b::g1)) l =
-               if numerical (#1 b)
-	          orelse not (numerical (#1 a))
-		  andalso length (#2 a) <= length (#2 b)
+	       if be4 a b
                then ascending b g1 (a::l)
                else (a::l,g)
          and rev2 [] l2 = l2
@@ -253,9 +265,7 @@ fun sortByOrder [] = []
          fun merge [] l2 = l2
            | merge l1 [] = l1
            | merge (l1 as (a::r1)) (l2 as (b::r2)) =
-               if numerical (#1 b)
-		  orelse not (numerical (#1 a))
-		  andalso length (#2 a) <= length (#2 b)
+               if be4 a b
                then a :: merge r1 l2
                else b :: merge l1 r2
          val (g1,g2) = split g
@@ -268,7 +278,8 @@ fun sortByOrder [] = []
 (* n-colour graph using Briggs' algorithm *)
 
 fun colourGraph g rmin rmax moveRelated =
-  select (simplify (sortByOrder g) []) (mList rmin rmax) moveRelated []
+  select (simplify (sortByOrder g) [])
+	 (mList rmin rmax) moveRelated []
 
 and simplify [] l = l
   | simplify ((a as (r,c)) :: g) l =
@@ -445,7 +456,8 @@ fun maxreg [] m = m
 *)
  		  
 fun registerAlloc ilist liveAtEnd rmin callerMax rmax spilled =
-  let val llist = live_regs ilist liveAtEnd
+  let
+      val llist = live_regs ilist liveAtEnd
       val callerSaves = mList rmin callerMax
       val iGraph = graph ilist llist callerSaves
       val moveRelated = findMoves ilist llist
@@ -460,6 +472,8 @@ fun registerAlloc ilist liveAtEnd rmin callerMax rmax spilled =
   end
   handle not_colourable r =>
     let
+      val _ = TextIO.output (TextIO.stdErr, r ^ " spilled\n")
+      val _ = spilledVars := r :: (!spilledVars)
       val offset = Int.toString (4*spilled)
       val ilist' = spill ilist r offset
       val ilist'' = [Mips.SW (r,"29",offset)]
