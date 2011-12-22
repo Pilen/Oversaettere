@@ -93,20 +93,6 @@ struct
 	  val (code,ty,loc,pos) = compileLval lval vtable ftable
 	in
 	  case (ty,loc) of
-(*
-	    (Type.Int, Reg x) =>
-	      (Type.Int,
-	       code @ [Mips.MOVE (place,x)])
-          | (Type.Char, Reg x) =>
-              (Type.Char,
-               code @ [Mips.MOVE (place,x)])
-          | (Type.IntRef, Reg x) =>
-              (Type.IntRef,
-               code @ [Mips.LW (place,x,"0")])
-          | (Type.CharRef, Reg x) =>
-              (Type.CharRef,
-               code @ [Mips.LB (place,x,"0")])
-*)
             (tty, Reg x) =>
             (tty,
              code @ [Mips.MOVE (place,x)])
@@ -129,27 +115,11 @@ struct
 	  val (code0,ty,loc,_) = compileLval lval vtable ftable
 	  val (_,code1) = compileExp e vtable ftable t
 	in
-          
 	  case (ty,loc) of
-(*
-	    (Type.Int, Reg x) =>
-	      (Type.Int,
-	       code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
-          | (Type.Char, Reg x) =>
-              (Type.Char,
-               code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
-          | (Type.IntRef, Reg x) =>
-              (Type.IntRef,
-               code0 @ code1 @
-               [Mips.SW (t,x,"0"), Mips.MOVE (place,t)])
-          | (Type.CharRef, Reg x) =>
-              (Type.CharRef,
-               code0 @ code1 @
-               [Mips.ANDI(t,t,"255"), Mips.SB (t,x,"0"), Mips.MOVE (place,t)])
-*)
-
-
-            (tty, Reg x) =>
+            (Type.Char, Reg x) => 
+              (Type.Char, 
+               code0 @ code1 @ [Mips.ANDI (t,t,"255"), Mips.MOVE(x,t), Mips.MOVE(place,t)])
+          | (tty, Reg x) =>
               (tty,
                code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
           | (Type.Int, Mem x) =>
