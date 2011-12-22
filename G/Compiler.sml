@@ -165,7 +165,6 @@ struct
                                                 "pointer-pointers "^
                                                 "not implemented!", p)
 
-              
 	end
     | S100.Plus (e1,e2,pos) =>
         let

@@ -1,2 +1,7 @@
 /* ourerror01.100 */
-/* main
+/* Missing main function */
+
+int foo()
+{
+        return 1;
+}

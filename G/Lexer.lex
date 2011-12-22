@@ -41,17 +41,18 @@ rule Token = parse
                                NONE   => lexerError lexbuf "Bad integer!"
                              | SOME i => Parser.NUM (i, getPos lexbuf) }
 
-  | `'` [` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`]) `'`
+  | `'` ([` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`])) `'`
                         { let val cs = getLexeme lexbuf
-                          in (case Char.fromCString (String.substring
-                                                     (cs,1,(size cs)-2)) of
+                            in (case Char.fromCString
+                                (String.substring
+                                 (cs,1,(size cs)-2)) of
                                 NONE   => lexerError lexbuf "Bad char!"
                                 | SOME i => Parser.CHARCONST (i, getPos lexbuf))
                           end
                         }
-  | `"` [` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`])* `"`
+  | `"` ([` ` `!` `#`-`&` `(`-`[` `]`-`~`]|(`\` [` `-`~`]))* `"`
                         {case String.fromCString (getLexeme lexbuf) of
-                               NONE   => lexerError lexbuf "Bad string!"
+                            NONE   => lexerError lexbuf "Bad string!"
                             | SOME i => Parser.STRINGCONST (String.substring
                                                             (i,1,(size i)-2),
                                                             getPos lexbuf)}

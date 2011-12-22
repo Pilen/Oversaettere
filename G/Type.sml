@@ -116,16 +116,16 @@ struct
   fun extend [] _ vtable = vtable
     | extend (S100.Val (x,p)::sids) t vtable =
       (case lookup x vtable of
-	   NONE => extend sids t ((x,t)::vtable)
-	 | SOME _ => raise Error ("Double declaration of "^x,p))
+	 NONE => extend sids t ((x,t)::vtable)
+       | SOME _ => raise Error ("Double declaration of "^x,p))
     | extend (S100.Ref (x,p)::sids) Int vtable = 
       (case lookup x vtable of
-	   NONE => extend sids Int ((x,IntRef)::vtable)
-	 | SOME _ => raise Error ("Double declaration of "^x,p))
+	 NONE => extend sids Int ((x,IntRef)::vtable)
+       | SOME _ => raise Error ("Double declaration of "^x,p))
     | extend (S100.Ref (x,p)::sids) Char vtable = 
       (case lookup x vtable of
-	   NONE => extend sids Char ((x,IntRef)::vtable)
-	 | SOME _ => raise Error ("Double declaration of "^x,p))
+	 NONE => extend sids Char ((x,CharRef)::vtable)
+       | SOME _ => raise Error ("Double declaration of "^x,p))
     | extend (S100.Ref (x,p)::sids) t vtable = raise Error ("You killed the typechecker!!!!",p)
 
 
@@ -156,7 +156,7 @@ struct
     | S100.Return (e,p) => if checkExp e vtable ftable = returntype
                            then true
                            else raise Error ("Returned value not of "^
-                                             "functions returntype"^
+                                             "functions returntype: "^
                                              typeToString(returntype)^
                                              " != "^
                                              typeToString(checkExp e vtable ftable)
@@ -178,7 +178,7 @@ struct
       end
 
   fun checkFunDec (t,sf,decs,body,p) ftable =
-        if checkStat body (checkDecs decs) ftable (convertType t)
+        if checkStat body (checkDecs decs) ftable (getType t sf)
         then ()
         else raise Error ("Function needs valid return statements",p)
 
@@ -190,7 +190,9 @@ struct
               val parT = (List.map (#2) (checkDecs decs))
 	      val resultT = getType t sf
 	    in
+              (*print (getName sf^" of "^typeToString(getType t sf)^"\n");*)
               getFuns fs ((getName sf, (parT,resultT)) :: ftable)
+              
 	    end
 	| SOME _ => raise Error ("Redeclaration of "^ getName sf,p)
 
