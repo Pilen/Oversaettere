@@ -37,26 +37,28 @@ struct
   val maxReg = 24      (* highest allocatable register *)
 
   datatype Location = Reg of string (* value is in register *)
+                    | Mem of string (* value is in memory *)
+
 
   fun extend [] _ vtable = vtable
     | extend (S100.Val (x,p)::sids) t vtable =
       (case lookup x vtable of
 	   NONE => 
-           let y=newName()
-           in extend sids t ((x,(t,x^y)::vtable)
+           let val y = newName()
+           in extend sids t ((x,(t,x^y))::vtable)
            end
 	 | SOME _ => raise Error ("Double declaration of "^x,p))
     | extend (S100.Ref (x,p)::sids) t vtable =
       (case lookup x vtable of
          NONE => 
-         let
+         let val y = newName()
          in extend sids t ((x,(t,x^y))::vtable)
          end
        | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
 
   fun compileDecs [] = []
-    | checkDecs ((t,sids)::ds) =
-        extend (List.rev sids) (convertType t) (checkDecs ds)
+    | compileDecs ((t,sids)::ds) =
+        extend (List.rev sids) (Type.convertType t) (compileDecs ds)
 
 
   (* compile expression *)
@@ -69,27 +71,101 @@ struct
 	  (Type.Int,
 	   [Mips.LUI (place, makeConst (n div 65536)),
 	   Mips.ORI (place, place, makeConst (n mod 65536))])
-    | S100.CharConst (c,pos) => []
-    | S100.StringConst (s,pos) => []
+    | S100.CharConst (c,pos) =>
+      (Type.Char,
+       [Mips.LI (place, Int.toString(ord(c)))])
+    | S100.StringConst (s,pos) =>
+      let
+        val t = newName()
+      in
+        (Type.CharRef,
+         [Mips.DATA "",
+          Mips.LABEL t,
+          Mips.ASCIIZ s,
+          Mips.TEXT "",
+          Mips.LA (place,t)])
+      end
     | S100.LV lval =>
         let
-	  val (code,ty,loc) = compileLval lval vtable ftable
+	  val (code,ty,loc,pos) = compileLval lval vtable ftable
 	in
 	  case (ty,loc) of
+(*
 	    (Type.Int, Reg x) =>
 	      (Type.Int,
 	       code @ [Mips.MOVE (place,x)])
+          | (Type.Char, Reg x) =>
+              (Type.Char,
+               code @ [Mips.MOVE (place,x)])
+          | (Type.IntRef, Reg x) =>
+              (Type.IntRef,
+               code @ [Mips.LW (place,x,"0")])
+          | (Type.CharRef, Reg x) =>
+              (Type.CharRef,
+               code @ [Mips.LB (place,x,"0")])
+*)
+            (tty, Reg x) =>
+            (tty,
+             code @ [Mips.MOVE (place,x)])
+          | (Type.Int, Mem x) =>
+            (Type.Int,
+             code @ [Mips.LW (place,x,"0")])
+          | (Type.Char, Mem x) =>
+            (Type.Char,
+             code @ [Mips.LB (place,x,"0")])
+          | (Type.IntRef, Mem x) => raise Error ("Type error, "^
+                                                "pointer-pointers "^
+                                                "not implemented!", pos)
+          | (Type.CharRef, Mem x) => raise Error ("Type error, "^
+                                                "pointer-pointers "^
+                                                "not implemented!", pos)
 	end
     | S100.Assign (lval,e,p) =>
         let
           val t = "_assign_"^newName()
-	  val (code0,ty,loc) = compileLval lval vtable ftable
+	  val (code0,ty,loc,_) = compileLval lval vtable ftable
 	  val (_,code1) = compileExp e vtable ftable t
 	in
 	  case (ty,loc) of
+(*
 	    (Type.Int, Reg x) =>
 	      (Type.Int,
 	       code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
+          | (Type.Char, Reg x) =>
+              (Type.Char,
+               code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
+          | (Type.IntRef, Reg x) =>
+              (Type.IntRef,
+               code0 @ code1 @
+               [Mips.SW (t,x,"0"), Mips.MOVE (place,t)])
+          | (Type.CharRef, Reg x) =>
+              (Type.CharRef,
+               code0 @ code1 @
+               [Mips.ANDI(t,t,"255"), Mips.SB (t,x,"0"), Mips.MOVE (place,t)])
+*)
+
+
+            (tty, Reg x) =>
+              (tty,
+               code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
+          | (Type.Int, Mem x) =>
+            (Type.Int,
+             code0 @ code1 @
+             [Mips.SW (t,x,"0"), Mips.MOVE (place,t)])
+          | (Type.Char, Mem x) =>
+            (Type.Char,
+               code0 @ code1 @
+               [Mips.ANDI(t,t,"255"), Mips.SB (t,x,"0"), Mips.MOVE (place,t)])
+          | (Type.IntRef, Mem x) => raise Error ("Type error, "^
+                                                "asignment of"^
+                                                "pointer-pointers "^
+                                                "not implemented!", p)
+          | (Type.CharRef, Mem x) => raise Error ("Type error, "^
+                                                "asignment of"^
+                                                "pointer-pointers "^
+                                                "not implemented!", p)
+
+              
 	end
     | S100.Plus (e1,e2,pos) =>
         let
@@ -98,10 +174,23 @@ struct
           val (ty1,code1) = compileExp e1 vtable ftable t1
           val (ty2,code2) = compileExp e2 vtable ftable t2
 	in
-	  case (ty1,ty2) of
+	  case (Type.ignoreChar(ty1),Type.ignoreChar(ty2)) of
 	    (Type.Int, Type.Int) =>
-	      (Type.Int,
+	      (ty1,(*Type.Int,*)
 	       code1 @ code2 @ [Mips.ADD (place,t1,t2)])
+          | (Type.Int, Type.IntRef) =>
+              (ty2,(*Type.IntRef,*)
+               code1 @ code2 @ [Mips.SLL (t1,t1,"2"), Mips.ADD(place,place,t1)])
+          | (Type.IntRef, Type.Int) =>
+              (ty1,(*Type.IntRef,*)
+               code1 @ code2 @ [Mips.SLL (t2,t2,"2"), Mips.ADD(place,place,t2)])
+          | (Type.Int, Type.CharRef) =>
+              (ty2,(*Type.CharRef,*)
+               code1 @ code2 @ [Mips.ADD (place,place,t1)])
+          | (Type.Char, Type.Int) =>
+              (ty1,(*Type.CharRef,*)
+               code1 @ code2 @ [Mips.ADD (place,place,t2)])
+          | (_,_) => raise Error ("Type error in plus operation", pos)
 	end
     | S100.Minus (e1,e2,pos) =>
         let
@@ -112,8 +201,21 @@ struct
 	in
 	  case (ty1,ty2) of
 	    (Type.Int, Type.Int) =>
-	      (Type.Int,
+	      (ty1,(*Type.Int,*)
 	       code1 @ code2 @ [Mips.SUB (place,t1,t2)])
+          | (Type.IntRef, Type.Int) =>
+              (ty2,(*Type.Int,*)
+               code1 @ code2 @ [Mips.SLL (t2,t2,"2"), Mips.SUB (place,t1,t2)])
+          | (Type.CharRef, Type.Int) =>
+              (ty1,(*Type.CharRef,*)
+               code1 @ code2 @ [Mips.SUB (place,t1,t2)])
+          | (Type.IntRef, Type.IntRef) =>
+              (Type.Int,
+               code1 @ code2 @[Mips.SUB(place,t1,t2),Mips.SRA(place,place,"2")])
+          | (Type.CharRef, Type.CharRef) =>
+              (Type.Int,
+               code1 @ code2 @ [Mips.SUB (place,t1,t2)])
+          | (_,_) => raise Error ("Type error in minus operation", pos)
 	end
     | S100.Less (e1,e2,pos) =>
         let
@@ -137,6 +239,7 @@ struct
                     Mips.SLT (place, t1, t2),
                     Mips.ADD (place, place, t3),
                     Mips.XORI (place, place, "1")])
+      end
     | S100.Call (f,es,pos) =>
 	let
 	  val rTy = case lookup f ftable of
@@ -188,8 +291,27 @@ struct
     case lval of
       S100.Var (x,p) =>
         (case lookup x vtable of
-	   SOME (ty,y) => ([],ty,Reg y)
+	   SOME (ty,y) => ([],ty,Reg y,p)
 	 | NONE => raise Error ("Unknown variable "^x,p))
+    | S100.Deref (x,p) =>
+      (case lookup x vtable of 
+         SOME (ty,y) => ([],Type.typeOfData(ty),Mem y,p)
+       | NONE => raise Error ("Unknown variable "^x,p))
+    | S100.Lookup (x,e,p) =>
+      let 
+        val t = newName()
+        val (ty,code) = compileExp e vtable ftable t
+      in
+      (case lookup x vtable of 
+         SOME (ty,y) => (case ty of
+                           Type.IntRef => (code @ 
+                                           [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)]
+                                         ,Type.Int,Mem y,p)
+                         | Type.CharRef => (code @ [Mips.ADD(y,y,t)],Type.Char,Mem y,p)
+                         | _ => raise Error ("You can not use a non-reference "^
+                                             "type as an address!", p))
+       | NONE => raise Error ("Unknown variable "^x,p))
+      end
 
   fun compileStat s vtable ftable exitLabel =
     case s of
@@ -231,8 +353,8 @@ struct
     | S100.Block ([],[],p) => []
     | S100.Block ([],s::ss,p) =>
       let
-        val code0 checkStat s vtable ftable exitLabel
-        val code1 checkStat (S100.Block ([], ss, p)) vtable ftable exitLabel
+        val code0 = compileStat s vtable ftable exitLabel
+        val code1 = compileStat (S100.Block ([], ss, p)) vtable ftable exitLabel
       in
         code0 @ code1
       end
@@ -240,7 +362,7 @@ struct
       let
         val vtable' = compileDecs ds
       in
-        checkStat (S100.Block([],ss,p) vtable' ftable exitLabel
+        compileStat (S100.Block([],ss,p)) vtable' ftable exitLabel
       end
     | S100.Return (e,p) =>
         let
@@ -280,7 +402,8 @@ struct
 	       let
 		 val y = newName ()
 		 val (x,ty,loc) = (case s of
-			         S100.Val (x,p) => (x, t, x^y))
+			         S100.Val (x,p) => (x, t, x^y)
+                               | S100.Ref (x,p) => (x, t, x^y))
 		 val rname = Int.toString r
 		 val (code, vtable, stackSpace) = moveArgs1 ss t ds (r+1)
 	       in
@@ -324,12 +447,12 @@ struct
   fun compile funs =
     let
       val ftable =
-	  Type.getFuns funs [("walloc",([Int],IntRef)),
-                             ("balloc",([Int],CharRef)),
-                             ("getint",([],Int)),
-                             ("getstring",([Int],CharRef)),
-			     ("putint",([Int],Int)),
-                             ("putstring",([CharRef],CharRef))]
+	  Type.getFuns funs [("walloc",([Type.Int],Type.IntRef)),
+                             ("balloc",([Type.Int],Type.CharRef)),
+                             ("getint",([],Type.Int)),
+                             ("getstring",([Type.Int],Type.CharRef)),
+			     ("putint",([Type.Int],Type.Int)),
+                             ("putstring",([Type.CharRef],Type.CharRef))]
       val funsCode = List.concat (List.map (compileFun ftable) funs)
     in
       [Mips.TEXT "0x00400000",
@@ -364,7 +487,8 @@ struct
 
 
 
-         Mips.LABEL "putstring"   (* putstring function : prints string starting in $2*)
+         Mips.LABEL "putstring",   (* putstring function :
+                                    prints string starting in $2*)
          Mips.MOVE ("4","2"),
          Mips.LI ("2","4"),       (* print_string syscall *)
          Mips.SYSCALL,
@@ -373,22 +497,29 @@ struct
 	 Mips.SYSCALL,            (* write CR *)
 	 Mips.JR (RA,[]),
 
-         mips.label "getstring",
-         mips.jal (
+         Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
+         Mips.MOVE ("5","2"),     (* copy length into $5, as argument for
+                                                             read_string *)
+         Mips.JAL ("balloc",[]),  (* allocate space for the string *)
+         Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
+         Mips.LI ("2","8"),       (* system call code for read_string *)
+         Mips.SYSCALL,            (* read_string *)
+         Mips.MOVE ("2","4"),     (* return string address *)
+         Mips.JR (RA,[]),
 
-         mips.label "walloc",     (* walloc function : ($2:int) -> ($2:IntRef) *)
-         mips.sll ("2","2","2"),
-         mips.move ("4","2"),
-         mips.li ("2","9"),
-         mips.syscall
-         mips.jr (ra,[]),
+         Mips.LABEL "walloc",     (* walloc function : ($2:int) ->($2:IntRef) *)
+         Mips.SLL ("2","2","2"),
+         Mips.MOVE ("4","2"),
+         Mips.LI ("2","9"),
+         Mips.SYSCALL,
+         Mips.JR (RA,[]),
 
 
-         mips.label "balloc",     (* balloc function : ($2:int) -> ($2:CharRef) *)
-         mips.move ("4","2"),
-         mips.li ("2","9"),
-         mips.syscall
-         mips.jr (ra,[]),
+         Mips.LABEL "balloc",     (* balloc function : ($2:int)->($2:CharRef) *)
+         Mips.MOVE ("4","2"),
+         Mips.LI ("2","9"),
+         Mips.SYSCALL,
+         Mips.JR (RA,[]),
 
 (*
          .data

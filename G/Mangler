@@ -3,6 +3,7 @@ LEXER:
 Riv " og ' af strengkonstanter
 
 TYPETJEKKER:
+converttype skal ikke lave chars om til ints !!!!!!!!!!!!!!!!!!!!!1111
 kontroller at deklarationer ikke kan foregå fleregange
 Næstnederste paragraf på side 7
 
@@ -18,3 +19,55 @@ Branch delay slots?
 Delayed loads
 
 Hvordan er endian?
+
+
+XXXSkal strengkonstanter allokeres på hoben?  >>> Strengkonstanter laves med .data
+
+
+
+int i; char c
+i = c = 256
+i == 0
+c == 0
+place skal cuttes til så den matcher det der bliver assigned.
+andi place place 255 / andi t t 255
+done
+
+
+Dokumentation
+ignoreChar ligger i Type.sml, og Type.sig
+Compiler: plus og minus returnerer ty1/ty2 for at omgå ignoreChar
+checkLval checker om deref/lookup er referencer
+
+Hvad fuck bruges S100.Ref til?
+
+xor rd, rs, rt
+addi rd, rd, 2 147 483 647
+slt rd, rd, 2147483647
+xori rd, rd, 1
+
+
+
+TESTS:
+error0.100 :
+error1.100 : Redeclaration of main
+error2.100 : Double declaration of x
+error3.100 : Unknown function: getchar
+error4.100 : Redeclaration of putint
+error5.100 : Type mismatch in addition at line
+error6.100 :
+error7.100 :
+error8.100 :
+error9.100 :
+error10.100 :
+error11.100 :
+error12.100 :
+error13.100 :
+error14.100 :
+error15.100 :
+error16.100 :
+error17.100 :
+error18.100 :
+error19.100 :
+
+test for manglene main
