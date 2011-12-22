@@ -281,10 +281,10 @@ struct
         then
           (case lookup x vtable of (* reference type must *)
              SOME (Type.IntRef, y) => (code @ 
-                                       [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)],
-                                       Type.Int,Mem y,p)
-           | SOME (Type.CharRef, y) => (code @ [Mips.ADD(y,y,t)],
-                                        Type.Char,Mem y,p)
+                                       [Mips.SLL(t,t,"2"),Mips.ADD (t,t,y)],
+                                       Type.Int,Mem t,p)
+           | SOME (Type.CharRef, y) => (code @ [Mips.ADD(t,t,y)],
+                                        Type.Char,Mem t,p)
            | NONE => raise Error ("Unknown variable "^x,p)
            | SOME (_,y) => raise Error ("Type error, not a reference",p))
         else raise Error ("You can not use a non-reference "^
