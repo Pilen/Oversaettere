@@ -278,32 +278,19 @@ struct
         val t = newName()
         val (ty,code) = compileExp e vtable ftable t
       in
-(*
-      (case lookup x vtable of 
-         SOME (tty,y) => (case ty of
-                           Type.IntRef=> (code @ 
-                                           [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)]
-                                         ,Type.Int,Mem y,p)
-                         | Type.CharRef => (code @ [Mips.ADD(y,y,t)],Type.Char,Mem y,p)
-                         | _ => raise Error ("You can not use a non-reference "^
-                                             "type as an address!", p))
-       | NONE => raise Error ("Unknown variable "^x,p))
-*)
-
-        (case Type.ignoreChar(ty) of (* lookup type, must be int or char *)
-           Type.Int =>
-           (case lookup x vtable of (* reference type must *)
-              SOME (Type.IntRef, y) => (code @ 
-                                        [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)],
-                                        Type.Int,Mem y,p)
-            | SOME (Type.CharRef, y) => (code @ [Mips.ADD(y,y,t)],
-                                       Type.Char,Mem y,p)
-            | SOME (Type.Int, y) => raise Error ("FUCK YOU, dont use ints here!",p)
-            | NONE => raise Error ("Unknown variable "^x,p)
-            | SOME (_,y) => raise Error ("Type error, not a reference",p))
-         | _ => raise Error ("You can not use a non-reference "^
-                             "type as an address!", p))
-      end
+        if Type.ignoreChar(ty) = Type.Int 
+        then
+          (case lookup x vtable of (* reference type must *)
+             SOME (Type.IntRef, y) => (code @ 
+                                       [Mips.SLL(t,t,"2"),Mips.ADD (t,t,y)],
+                                       Type.Int,Mem t,p)
+           | SOME (Type.CharRef, y) => (code @ [Mips.ADD(t,t,y)],
+                                        Type.Char,Mem t,p)
+           | NONE => raise Error ("Unknown variable "^x,p)
+           | SOME (_,y) => raise Error ("Type error, not a reference",p))
+        else raise Error ("You can not use a non-reference "^
+                          "type as an address!", p)
+end
 
   fun compileStat s vtable ftable exitLabel =
     case s of
