@@ -26,6 +26,10 @@ struct
     | typeToString Char = "Char"
     | typeToString IntRef = "IntRef"
     | typeToString CharRef = "CharRef"
+
+  fun mismatch t1 t2 = (typeToString t1) ^ " != " ^ (typeToString t2)
+
+
   (* Ignore the type char, treat it as an int *)
   fun ignoreChar Char = Int
     | ignoreChar ty = ty
@@ -49,7 +53,7 @@ struct
 	  val t2 = checkExp e1 vtable ftable
 	in
 	  if ignoreChar(t1)=ignoreChar(t2) then ignoreChar(t2)
-	  else raise Error ("Type mismatch in assignment: "^(typeToString t1)^" != "^(typeToString t2) ,p)
+	  else raise Error ("Type mismatch in assignment: "^mismatch t1 t2,p)
 	end
     | S100.Plus (e1,e2,p) =>
         (case (ignoreChar(checkExp e1 vtable ftable),
@@ -156,11 +160,7 @@ struct
     | S100.Return (e,p) => if checkExp e vtable ftable = returntype
                            then true
                            else raise Error ("Returned value not of "^
-                                             "functions returntype: "^
-                                             typeToString(returntype)^
-                                             " != "^
-                                             typeToString(checkExp e vtable ftable)
-                                           ,p)
+                                             "functions returntype: "^mismatch returntype (checkExp e vtable ftable) ,p)
 
     | S100.Block ([],[],p) => false
     | S100.Block ([], s::ss,p) =>

@@ -66,6 +66,11 @@ rule Token = parse
                         { let val s = getLexeme lexbuf;
                           in Parser.REF (String.substring(s,1,(size s)-1),
                                          getPos lexbuf) end }
+  | [`a`-`z` `A`-`Z`] [`a`-`z` `A`-`Z` `0`-`9` `_`]* `*`
+                        { let val s = getLexeme lexbuf;
+                          in Parser.REF (String.substring(s,0,(size s)-1),
+                          getPos lexbuf) end }
+
   | `=`                 { Parser.ASSIGN (getPos lexbuf) }
   | `=` `=`             { Parser.EQUAL (getPos lexbuf)}
   | `(`                 { Parser.LPAR (getPos lexbuf) }

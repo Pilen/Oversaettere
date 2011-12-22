@@ -98,6 +98,33 @@ getint:
 	ori	$2, $0, 5
 	syscall
 	jr	$31
+putstring:
+	ori	$4, $2, 0
+	ori	$2, $0, 4
+	syscall
+	ori	$2, $0, 4
+	la	$4, _cr_
+	syscall
+	jr	$31
+getstring:
+	ori	$5, $2, 0
+	jal	balloc
+	ori	$4, $2, 0
+	ori	$2, $0, 8
+	syscall
+	ori	$2, $4, 0
+	jr	$31
+walloc:
+	sll	$2, $2, 2
+	ori	$4, $2, 0
+	ori	$2, $0, 9
+	syscall
+	jr	$31
+balloc:
+	ori	$4, $2, 0
+	ori	$2, $0, 9
+	syscall
+	jr	$31
 	.data	
 	.align	2
 _cr_:

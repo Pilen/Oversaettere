@@ -1,3 +1,4 @@
+clear
 mosmlc -c Mips.sml
 mosmlc -c RegAlloc.sig RegAlloc.sml
 mosmlc -c S100.sml
@@ -33,10 +34,10 @@ echo -e "\nour errors"
 
 echo -e "\nprograms"
 ./C100 charref
-#./C100 copy
-#./C100 dfa
-#./C100 fib
-#./C100 sort
+./C100 copy
+./C100 dfa
+./C100 fib
+./C100 sort
 #./C100 sort2
 #./C100 ssort
 #./C100 ssort2

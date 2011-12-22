@@ -92,6 +92,6 @@ Exps1:	  Exp		{ [$1] }
 			{ $1 :: $3 };
 
 Lval :	  ID		{ S100.Var $1 }
-        | ID REF        { S100.Deref $1 }
+        | REF           { S100.Deref $1 }
         | ID LBRACK Exp RBRACK
                         { S100.Lookup (#1 $1, $3, $2) }

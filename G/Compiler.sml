@@ -44,17 +44,21 @@ struct
     | extend (S100.Val (x,p)::sids) t vtable =
       (case lookup x vtable of
 	   NONE => 
-           let val y = newName()
-           in extend sids t ((x,(t,x^y))::vtable)
-           end
+           extend sids t ((x,(t,x^newName()))::vtable)
 	 | SOME _ => raise Error ("Double declaration of "^x,p))
-    | extend (S100.Ref (x,p)::sids) t vtable =
+
+    | extend (S100.Ref (x,p)::sids) Type.Int vtable =
       (case lookup x vtable of
          NONE => 
-         let val y = newName()
-         in extend sids t ((x,(t,x^y))::vtable)
-         end
+         extend sids Type.Int ((x,(Type.IntRef,x^newName()))::vtable)
        | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+    | extend (S100.Ref (x,p)::sids) Type.Char vtable =
+      (case lookup x vtable of
+         NONE =>  
+         extend sids Type.Char ((x,(Type.CharRef,x^newName()))::vtable)
+       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+     | extend (S100.Ref (x,p)::sids) t vtable = 
+       raise Error ("Noeh, din spasser!"^x,p)
 
   fun compileDecs [] = []
     | compileDecs ((t,sids)::ds) =
@@ -179,17 +183,20 @@ struct
 	       code1 @ code2 @ [Mips.ADD (place,t1,t2)])
           | (Type.Int, Type.IntRef) =>
               (ty2,(*Type.IntRef,*)
-               code1 @ code2 @ [Mips.SLL (t1,t1,"2"), Mips.ADD(place,place,t1)])
+               code1 @ code2 @ [Mips.SLL (t1,t1,"2"), Mips.ADD(place,t1,t2)])
           | (Type.IntRef, Type.Int) =>
               (ty1,(*Type.IntRef,*)
-               code1 @ code2 @ [Mips.SLL (t2,t2,"2"), Mips.ADD(place,place,t2)])
+               code1 @ code2 @ [Mips.SLL (t2,t2,"2"), Mips.ADD(place,t1,t2)])
           | (Type.Int, Type.CharRef) =>
               (ty2,(*Type.CharRef,*)
-               code1 @ code2 @ [Mips.ADD (place,place,t1)])
+               code1 @ code2 @ [Mips.ADD (place,t1,t2)])
+          | (Type.CharRef, Type.Int) =>
+              (ty1,(*Type.CharRef,*)
+               code1 @ code2 @ [Mips.ADD (place,t1,t2)])
           | (Type.Char, Type.Int) =>
               (ty1,(*Type.CharRef,*)
-               code1 @ code2 @ [Mips.ADD (place,place,t2)])
-          | (_,_) => raise Error ("Type error in plus operation", pos)
+               code1 @ code2 @ [Mips.ADD (place,t1,t2)])
+          | (_,_) => raise Error ("Type error in plus operation "^Type.mismatch ty1 ty2, pos)
 	end
     | S100.Minus (e1,e2,pos) =>
         let
@@ -303,7 +310,7 @@ struct
       in
       (case lookup x vtable of 
          SOME (ty,y) => (case ty of
-                           Type.IntRef => (code @ 
+                           Type.IntRef=> (code @ 
                                            [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)]
                                          ,Type.Int,Mem y,p)
                          | Type.CharRef => (code @ [Mips.ADD(y,y,t)],Type.Char,Mem y,p)
