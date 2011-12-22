@@ -58,7 +58,9 @@ and action_12 lexbuf = (
 and action_11 lexbuf = (
  Parser.ASSIGN (getPos lexbuf) )
 and action_10 lexbuf = (
- Parser.REF (getPos lexbuf) )
+ let val s = getLexeme lexbuf;
+                          in Parser.REF (String.substring(s,1,(size s)-1),
+                                         getPos lexbuf) end )
 and action_9 lexbuf = (
  Parser.LESS (getPos lexbuf) )
 and action_8 lexbuf = (
@@ -70,11 +72,17 @@ and action_6 lexbuf = (
 and action_5 lexbuf = (
 case String.fromCString (getLexeme lexbuf) of
                                NONE   => lexerError lexbuf "Bad string!"
-                             | SOME i => Parser.STRINGCONST (i, getPos lexbuf))
+                            | SOME i => Parser.STRINGCONST (String.substring
+                                                            (i,1,(size i)-2),
+                                                            getPos lexbuf))
 and action_4 lexbuf = (
- case Char.fromCString (getLexeme lexbuf) of
-                               NONE   => lexerError lexbuf "Bad char!"
-                             | SOME i => Parser.CHARCONST (i, getPos lexbuf) )
+ let val cs = getLexeme lexbuf
+                          in (case Char.fromCString (String.substring
+                                                     (cs,1,(size cs)-2)) of
+                                NONE   => lexerError lexbuf "Bad char!"
+                                | SOME i => Parser.CHARCONST (i, getPos lexbuf))
+                          end
+                        )
 and action_3 lexbuf = (
  case Int.fromString (getLexeme lexbuf) of
                                NONE   => lexerError lexbuf "Bad integer!"

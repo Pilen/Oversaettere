@@ -15,10 +15,19 @@ struct
     | getName (S100.Ref (f,p)) = f
 
   fun getType t (S100.Val (f,p)) = convertType t
-    | getType t (S100.Ref (f,p)) = convertType t
+    | getType (S100.Int  _ ) (S100.Ref (f,p)) = IntRef
+    | getType (S100.Char _ ) (S100.Ref (f,p)) = CharRef
 
+  fun typeOfData IntRef = Int
+    | typeOfData CharRef = Char
+    | typeOfData t = t
+
+  fun typeToString Int = "Int"
+    | typeToString Char = "Char"
+    | typeToString IntRef = "IntRef"
+    | typeToString CharRef = "CharRef"
   (* Ignore the type char, treat it as an int *)
-  fun ignoreChar (Char) = Int
+  fun ignoreChar Char = Int
     | ignoreChar ty = ty
 
   (* lookup function for symbol table as list of (name,value) pairs *)
@@ -40,7 +49,7 @@ struct
 	  val t2 = checkExp e1 vtable ftable
 	in
 	  if ignoreChar(t1)=ignoreChar(t2) then ignoreChar(t2)
-	  else raise Error ("Type mismatch in assignment",p)
+	  else raise Error ("Type mismatch in assignment: "^(typeToString t1)^" != "^(typeToString t2) ,p)
 	end
     | S100.Plus (e1,e2,p) =>
         (case (ignoreChar(checkExp e1 vtable ftable),
@@ -103,15 +112,22 @@ struct
          | SOME _ => raise Error ("You can not use a non-reference type as an address!", p)
          | NONE   => raise Error ("Unknown variable: "^x,p))
       else raise Error ("Index not a number",p)
+
   fun extend [] _ vtable = vtable
     | extend (S100.Val (x,p)::sids) t vtable =
       (case lookup x vtable of
 	   NONE => extend sids t ((x,t)::vtable)
 	 | SOME _ => raise Error ("Double declaration of "^x,p))
-    | extend (S100.Ref (x,p)::sids) t vtable =
+    | extend (S100.Ref (x,p)::sids) Int vtable = 
       (case lookup x vtable of
-         NONE => extend sids t ((x,t)::vtable)
-       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+	   NONE => extend sids Int ((x,IntRef)::vtable)
+	 | SOME _ => raise Error ("Double declaration of "^x,p))
+    | extend (S100.Ref (x,p)::sids) Char vtable = 
+      (case lookup x vtable of
+	   NONE => extend sids Char ((x,IntRef)::vtable)
+	 | SOME _ => raise Error ("Double declaration of "^x,p))
+    | extend (S100.Ref (x,p)::sids) t vtable = raise Error ("You killed the typechecker!!!!",p)
+
 
   fun checkDecs [] = []
     | checkDecs ((t,sids)::ds) =
@@ -140,7 +156,11 @@ struct
     | S100.Return (e,p) => if checkExp e vtable ftable = returntype
                            then true
                            else raise Error ("Returned value not of "^
-                                             "functions returntype",p)
+                                             "functions returntype"^
+                                             typeToString(returntype)^
+                                             " != "^
+                                             typeToString(checkExp e vtable ftable)
+                                           ,p)
 
     | S100.Block ([],[],p) => false
     | S100.Block ([], s::ss,p) =>

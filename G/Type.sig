@@ -15,4 +15,5 @@ sig
   val getName : S100.Sid -> string
 
   val ignoreChar : Type -> Type
+  val typeOfData : Type -> Type
 end

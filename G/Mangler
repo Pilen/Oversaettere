@@ -45,3 +45,29 @@ xor rd, rs, rt
 addi rd, rd, 2 147 483 647
 slt rd, rd, 2147483647
 xori rd, rd, 1
+
+
+
+TESTS:
+error0.100 :
+error1.100 : Redeclaration of main
+error2.100 : Double declaration of x
+error3.100 : Unknown function: getchar
+error4.100 : Redeclaration of putint
+error5.100 : Type mismatch in addition at line
+error6.100 :
+error7.100 :
+error8.100 :
+error9.100 :
+error10.100 :
+error11.100 :
+error12.100 :
+error13.100 :
+error14.100 :
+error15.100 :
+error16.100 :
+error17.100 :
+error18.100 :
+error19.100 :
+
+test for manglene main

@@ -37,7 +37,7 @@ struct
   val maxReg = 24      (* highest allocatable register *)
 
   datatype Location = Reg of string (* value is in register *)
-                  (*| Mem of string (* value is in memory *) *)
+                    | Mem of string (* value is in memory *)
 
 
   fun extend [] _ vtable = vtable
@@ -87,9 +87,10 @@ struct
       end
     | S100.LV lval =>
         let
-	  val (code,ty,loc) = compileLval lval vtable ftable
+	  val (code,ty,loc,pos) = compileLval lval vtable ftable
 	in
 	  case (ty,loc) of
+(*
 	    (Type.Int, Reg x) =>
 	      (Type.Int,
 	       code @ [Mips.MOVE (place,x)])
@@ -102,17 +103,31 @@ struct
           | (Type.CharRef, Reg x) =>
               (Type.CharRef,
                code @ [Mips.LB (place,x,"0")])
-(*
-        in
-          (ty, code @ [Mips.Move (place,x)]) *)
+*)
+            (tty, Reg x) =>
+            (tty,
+             code @ [Mips.MOVE (place,x)])
+          | (Type.Int, Mem x) =>
+            (Type.Int,
+             code @ [Mips.LW (place,x,"0")])
+          | (Type.Char, Mem x) =>
+            (Type.Char,
+             code @ [Mips.LB (place,x,"0")])
+          | (Type.IntRef, Mem x) => raise Error ("Type error, "^
+                                                "pointer-pointers "^
+                                                "not implemented!", pos)
+          | (Type.CharRef, Mem x) => raise Error ("Type error, "^
+                                                "pointer-pointers "^
+                                                "not implemented!", pos)
 	end
     | S100.Assign (lval,e,p) =>
         let
           val t = "_assign_"^newName()
-	  val (code0,ty,loc) = compileLval lval vtable ftable
+	  val (code0,ty,loc,_) = compileLval lval vtable ftable
 	  val (_,code1) = compileExp e vtable ftable t
 	in
 	  case (ty,loc) of
+(*
 	    (Type.Int, Reg x) =>
 	      (Type.Int,
 	       code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
@@ -127,6 +142,30 @@ struct
               (Type.CharRef,
                code0 @ code1 @
                [Mips.ANDI(t,t,"255"), Mips.SB (t,x,"0"), Mips.MOVE (place,t)])
+*)
+
+
+            (tty, Reg x) =>
+              (tty,
+               code0 @ code1 @ [Mips.MOVE (x,t), Mips.MOVE (place,t)])
+          | (Type.Int, Mem x) =>
+            (Type.Int,
+             code0 @ code1 @
+             [Mips.SW (t,x,"0"), Mips.MOVE (place,t)])
+          | (Type.Char, Mem x) =>
+            (Type.Char,
+               code0 @ code1 @
+               [Mips.ANDI(t,t,"255"), Mips.SB (t,x,"0"), Mips.MOVE (place,t)])
+          | (Type.IntRef, Mem x) => raise Error ("Type error, "^
+                                                "asignment of"^
+                                                "pointer-pointers "^
+                                                "not implemented!", p)
+          | (Type.CharRef, Mem x) => raise Error ("Type error, "^
+                                                "asignment of"^
+                                                "pointer-pointers "^
+                                                "not implemented!", p)
+
+              
 	end
     | S100.Plus (e1,e2,pos) =>
         let
@@ -252,11 +291,11 @@ struct
     case lval of
       S100.Var (x,p) =>
         (case lookup x vtable of
-	   SOME (ty,y) => ([],ty,Reg y)
+	   SOME (ty,y) => ([],ty,Reg y,p)
 	 | NONE => raise Error ("Unknown variable "^x,p))
     | S100.Deref (x,p) =>
       (case lookup x vtable of 
-         SOME (ty,y) => ([],ty,Reg y)
+         SOME (ty,y) => ([],Type.typeOfData(ty),Mem y,p)
        | NONE => raise Error ("Unknown variable "^x,p))
     | S100.Lookup (x,e,p) =>
       let 
@@ -267,12 +306,13 @@ struct
          SOME (ty,y) => (case ty of
                            Type.IntRef => (code @ 
                                            [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)]
-                                         ,ty,Reg y)
-                         | Type.CharRef => (code @ [Mips.ADD(y,y,t)],ty,Reg y)
+                                         ,Type.Int,Mem y,p)
+                         | Type.CharRef => (code @ [Mips.ADD(y,y,t)],Type.Char,Mem y,p)
                          | _ => raise Error ("You can not use a non-reference "^
                                              "type as an address!", p))
        | NONE => raise Error ("Unknown variable "^x,p))
       end
+
   fun compileStat s vtable ftable exitLabel =
     case s of
       S100.EX e => #2 (compileExp e vtable ftable "0")

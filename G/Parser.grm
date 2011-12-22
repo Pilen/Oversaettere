@@ -1,7 +1,7 @@
-%token <string*(int*int)> ID STRINGCONST
+%token <string*(int*int)> ID STRINGCONST REF
 %token <int*(int*int)> NUM
 %token <char*(int*int)> CHARCONST
-%token <(int*int)> IF ELSE INT CHAR RETURN WHILE REF
+%token <(int*int)> IF ELSE INT CHAR RETURN WHILE
 %token <(int*int)> PLUS MINUS LESS EQUAL ASSIGN
 %token <(int*int)> LPAR RPAR LBRACE RBRACE LBRACK RBRACK
 %token <(int*int)> COMMA SEMICOLON EOF
@@ -52,7 +52,7 @@ Sids :	  Sid COMMA Sids
 	| Sid		{ [$1] };
 
 Sid :	  ID		{ S100.Val $1 }
-        | REF ID        { S100.Ref $2 };
+        | REF           { S100.Ref $1 };
 
 Stats :   Stat Stats    { $1 :: $2}
         |               { [] };
@@ -66,7 +66,7 @@ Stat :	  Exp SEMICOLON	{ S100.EX $1 }
                         { S100.While ($3, $5, $1) }
         | RETURN Exp SEMICOLON
                         { S100.Return ($2,$1) }
-        | LBRACK Decs1 Stats RBRACK
+        | LBRACE Decs1 Stats RBRACE
                         { S100.Block ($2, $3, $1) };
 
 

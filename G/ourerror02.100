@@ -1,0 +1,11 @@
+/* ourerror02.100 */
+
+int main()
+{
+        return 1;
+}
+
+char *foo(char *a)
+{
+        return a;
+}
