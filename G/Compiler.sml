@@ -536,7 +536,7 @@ struct
                                    as argument for read_string *)
          Mips.MOVE ("4","2"),     (* copy length intor $4,
                                    as argument for sbrk *)
-         Mips.Li("2","9"),        (* Allocate space for the string *)
+         Mips.LI("2","9"),        (* Allocate space for the string *)
          Mips.SYSCALL,            (* This is done manually to avoid saving sp *)
          Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
          Mips.LI ("2","8"),       (* system call code for read_string *)

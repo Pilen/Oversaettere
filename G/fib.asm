@@ -114,6 +114,16 @@ getstring:
 	syscall
 	ori	$2, $4, 0
 	jr	$31
+getstring:
+	ori	$5, $2, 0
+	ori	$4, $2, 0
+	ori	$2, $0, 9
+	syscall
+	ori	$4, $2, 0
+	ori	$2, $0, 8
+	syscall
+	ori	$2, $4, 0
+	jr	$31
 walloc:
 	sll	$2, $2, 2
 	ori	$4, $2, 0
