@@ -50,14 +50,14 @@ struct
       (case lookup x vtable of
          NONE => 
          extend sids Type.Int ((x,(Type.IntRef,x^newName()))::vtable)
-       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+       | SOME _ => raise Error ("Double declaration of "^x,p))
     | extend (S100.Ref (x,p)::sids) Type.Char vtable =
       (case lookup x vtable of
          NONE =>  
          extend sids Type.Char ((x,(Type.CharRef,x^newName()))::vtable)
-       | SOME _ => raise Error ("Noeh, din spasser!"^x,p))
+       | SOME _ => raise Error ("Double declaration of "^x,p))
      | extend (S100.Ref (x,p)::sids) t vtable = 
-       raise Error ("Noeh, din spasser!"^x,p)
+       raise Error ("An anormaly occured with the symboltable"^x,p)
 
   fun compileDecs [] = []
     | compileDecs ((t,sids)::ds) =
@@ -138,7 +138,6 @@ struct
                                                 "asignment of"^
                                                 "pointer-pointers "^
                                                 "not implemented!", p)
-
 	end
     | S100.Plus (e1,e2,pos) =>
         let
@@ -282,15 +281,15 @@ struct
         then
           (case lookup x vtable of (* reference type must *)
              SOME (Type.IntRef, y) => (code @ 
-                                       [Mips.SLL(t,t,"2"),Mips.ADD (t,t,y)],
-                                       Type.Int,Mem t,p)
-           | SOME (Type.CharRef, y) => (code @ [Mips.ADD(t,t,y)],
-                                        Type.Char,Mem t,p)
+                                       [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)],
+                                       Type.Int,Mem y,p)
+           | SOME (Type.CharRef, y) => (code @ [Mips.ADD(y,y,t)],
+                                        Type.Char,Mem y,p)
            | NONE => raise Error ("Unknown variable "^x,p)
            | SOME (_,y) => raise Error ("Type error, not a reference",p))
         else raise Error ("You can not use a non-reference "^
                           "type as an address!", p)
-end
+      end
 
   fun compileStat s vtable ftable exitLabel =
     case s of
@@ -476,18 +475,6 @@ end
 	 Mips.SYSCALL,            (* write CR *)
 	 Mips.JR (RA,[]),
 
-(*
-         Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
-         Mips.MOVE ("5","2"),     (* copy length into $5,
-                                   as argument for read_string *)
-         Mips.JAL ("balloc",[]),  (* allocate space for the string *)
-         Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
-         Mips.LI ("2","8"),       (* system call code for read_string *)
-         Mips.SYSCALL,            (* read_string *)
-         Mips.MOVE ("2","4"),     (* return string address *)
-         Mips.JR (RA,[]),
-*)
-
 
          Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
          Mips.MOVE ("5","2"),     (* copy length into $5,
@@ -517,13 +504,6 @@ end
          Mips.SYSCALL,            (* Request allocated space from sbrk *)
          Mips.JR (RA,[]),
 
-(*
-         .data
-     ref:
-         .space n*4
-         .text
-*)
-         
 
 	 Mips.DATA "",
 	 Mips.ALIGN "2",
