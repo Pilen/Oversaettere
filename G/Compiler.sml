@@ -529,6 +529,22 @@ struct
          Mips.MOVE ("2","4"),     (* return string address *)
          Mips.JR (RA,[]),
 
+
+
+         Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
+         Mips.MOVE ("5","2"),     (* copy length into $5,
+                                   as argument for read_string *)
+         Mips.MOVE ("4","2"),
+         Mips.Li("2","9"),
+         Mips.SYSCALL,
+                                  (* allocate space for the string *)
+         Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
+         Mips.LI ("2","8"),       (* system call code for read_string *)
+         Mips.SYSCALL,            (* read_string *)
+         Mips.MOVE ("2","4"),     (* return string address *)
+         Mips.JR (RA,[]),
+
+
          Mips.LABEL "walloc",     (* walloc function : ($2:int) ->($2:IntRef) *)
          Mips.SLL ("2","2","2"),
          Mips.MOVE ("4","2"),
