@@ -519,6 +519,7 @@ struct
 	 Mips.SYSCALL,            (* write CR *)
 	 Mips.JR (RA,[]),
 
+(*
          Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
          Mips.MOVE ("5","2"),     (* copy length into $5,
                                    as argument for read_string *)
@@ -528,7 +529,7 @@ struct
          Mips.SYSCALL,            (* read_string *)
          Mips.MOVE ("2","4"),     (* return string address *)
          Mips.JR (RA,[]),
-
+*)
 
 
          Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
