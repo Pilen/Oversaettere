@@ -32,8 +32,8 @@ c == 0
 place skal cuttes til så den matcher det der bliver assigned.
 andi place place 255 / andi t t 255
 done
-
-
+!!!!!Chars bliver ikke trunkeret!!!!!
+MENTAL NOTE, ryk konvertering af type til compileExp:Lval/assign
 Dokumentation
 ignoreChar ligger i Type.sml, og Type.sig
 Compiler: plus og minus returnerer ty1/ty2 for at omgå ignoreChar

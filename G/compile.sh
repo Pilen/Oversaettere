@@ -10,7 +10,7 @@ mosmlc -c Type.sig Type.sml
 mosmlc -c Compiler.sig Compiler.sml
 mosmlc -o C100 C100.sml
 
-
+echo -e "\n\n\nTESTS:"
 ./C100 error01
 ./C100 error02
 ./C100 error03
@@ -38,6 +38,6 @@ echo -e "\nprograms"
 ./C100 dfa
 ./C100 fib
 ./C100 sort
-#./C100 sort2
-#./C100 ssort
-#./C100 ssort2
+./C100 sort2
+./C100 ssort
+./C100 ssort2

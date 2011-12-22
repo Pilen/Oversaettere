@@ -17,4 +17,6 @@ sig
   val ignoreChar : Type -> Type
   val typeOfData : Type -> Type
   val mismatch   : Type -> Type -> string
+  val typeToString: Type -> string
+  val typeToRef : Type -> Type
 end

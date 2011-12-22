@@ -27,8 +27,13 @@ struct
     | typeToString IntRef = "IntRef"
     | typeToString CharRef = "CharRef"
 
+  fun typeToRef Int = IntRef
+    | typeToRef Char = CharRef
+    | typeToRef t = t
+
   fun mismatch t1 t2 = (typeToString t1) ^ " != " ^ (typeToString t2)
 
+  val emptytable = []
 
   (* Ignore the type char, treat it as an int *)
   fun ignoreChar Char = Int
@@ -40,6 +45,9 @@ struct
     | lookup x ((y,v)::table)
         = if x=y then SOME v else lookup x table
 
+  (* Prints a symboltable *)
+  fun printtable [] = (print " |")
+    | printtable ((x,p)::l) = (print (":"^x); printtable l)
 
   fun checkExp e vtable ftable =
     case e of
@@ -174,7 +182,7 @@ struct
       let
         val vtable' = checkDecs ds
       in
-        checkStat (S100.Block([], ss, p)) vtable' ftable returntype
+        checkStat (S100.Block([], ss, p)) (vtable' @ vtable) ftable returntype
       end
 
   fun checkFunDec (t,sf,decs,body,p) ftable =

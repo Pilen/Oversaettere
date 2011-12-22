@@ -1,0 +1,14 @@
+
+int main()
+{
+  return 1;
+}
+
+int foo(int *a, n)
+{
+  int i;
+
+  i = n-1;
+  return *a;
+}
+

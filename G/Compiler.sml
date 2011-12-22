@@ -46,7 +46,6 @@ struct
 	   NONE => 
            extend sids t ((x,(t,x^newName()))::vtable)
 	 | SOME _ => raise Error ("Double declaration of "^x,p))
-
     | extend (S100.Ref (x,p)::sids) Type.Int vtable =
       (case lookup x vtable of
          NONE => 
@@ -130,6 +129,7 @@ struct
 	  val (code0,ty,loc,_) = compileLval lval vtable ftable
 	  val (_,code1) = compileExp e vtable ftable t
 	in
+          
 	  case (ty,loc) of
 (*
 	    (Type.Int, Reg x) =>
@@ -308,8 +308,9 @@ struct
         val t = newName()
         val (ty,code) = compileExp e vtable ftable t
       in
+(*
       (case lookup x vtable of 
-         SOME (ty,y) => (case ty of
+         SOME (tty,y) => (case ty of
                            Type.IntRef=> (code @ 
                                            [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)]
                                          ,Type.Int,Mem y,p)
@@ -317,6 +318,21 @@ struct
                          | _ => raise Error ("You can not use a non-reference "^
                                              "type as an address!", p))
        | NONE => raise Error ("Unknown variable "^x,p))
+*)
+
+        (case Type.ignoreChar(ty) of (* lookup type, must be int or char *)
+           Type.Int =>
+           (case lookup x vtable of (* reference type must *)
+              SOME (Type.IntRef, y) => (code @ 
+                                        [Mips.SLL(t,t,"2"),Mips.ADD (y,y,t)],
+                                        Type.Int,Mem y,p)
+            | SOME (Type.CharRef, y) => (code @ [Mips.ADD(y,y,t)],
+                                       Type.Char,Mem y,p)
+            | SOME (Type.Int, y) => raise Error ("FUCK YOU, dont use ints here!",p)
+            | NONE => raise Error ("Unknown variable "^x,p)
+            | SOME (_,y) => raise Error ("Type error, not a reference",p))
+         | _ => raise Error ("You can not use a non-reference "^
+                             "type as an address!", p))
       end
 
   fun compileStat s vtable ftable exitLabel =
@@ -368,7 +384,7 @@ struct
       let
         val vtable' = compileDecs ds
       in
-        compileStat (S100.Block([],ss,p)) vtable' ftable exitLabel
+        compileStat (S100.Block([],ss,p)) (vtable' @ vtable) ftable exitLabel
       end
     | S100.Return (e,p) =>
         let
@@ -409,7 +425,7 @@ struct
 		 val y = newName ()
 		 val (x,ty,loc) = (case s of
 			         S100.Val (x,p) => (x, t, x^y)
-                               | S100.Ref (x,p) => (x, t, x^y))
+                               | S100.Ref (x,p) => (x, Type.typeToRef t, x^y))
 		 val rname = Int.toString r
 		 val (code, vtable, stackSpace) = moveArgs1 ss t ds (r+1)
 	       in
@@ -504,8 +520,8 @@ struct
 	 Mips.JR (RA,[]),
 
          Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
-         Mips.MOVE ("5","2"),     (* copy length into $5, as argument for
-                                                             read_string *)
+         Mips.MOVE ("5","2"),     (* copy length into $5,
+                                   as argument for read_string *)
          Mips.JAL ("balloc",[]),  (* allocate space for the string *)
          Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
          Mips.LI ("2","8"),       (* system call code for read_string *)
