@@ -534,10 +534,10 @@ struct
          Mips.LABEL "getstring",  (* getstring : ($2:int) -> ($2:CharRef) *)
          Mips.MOVE ("5","2"),     (* copy length into $5,
                                    as argument for read_string *)
-         Mips.MOVE ("4","2"),
-         Mips.Li("2","9"),
-         Mips.SYSCALL,
-                                  (* allocate space for the string *)
+         Mips.MOVE ("4","2"),     (* copy length intor $4,
+                                   as argument for sbrk *)
+         Mips.Li("2","9"),        (* Allocate space for the string *)
+         Mips.SYSCALL,            (* This is done manually to avoid saving sp *)
          Mips.MOVE ("4","2"),     (* set address as argument for read_string *)
          Mips.LI ("2","8"),       (* system call code for read_string *)
          Mips.SYSCALL,            (* read_string *)
@@ -546,17 +546,17 @@ struct
 
 
          Mips.LABEL "walloc",     (* walloc function : ($2:int) ->($2:IntRef) *)
-         Mips.SLL ("2","2","2"),
+         Mips.SLL ("2","2","2"),  (* Calculate bytes needed to store n words *)
          Mips.MOVE ("4","2"),
          Mips.LI ("2","9"),
-         Mips.SYSCALL,
+         Mips.SYSCALL,            (* Request allocated space from sbrk *)
          Mips.JR (RA,[]),
 
 
          Mips.LABEL "balloc",     (* balloc function : ($2:int)->($2:CharRef) *)
          Mips.MOVE ("4","2"),
          Mips.LI ("2","9"),
-         Mips.SYSCALL,
+         Mips.SYSCALL,            (* Request allocated space from sbrk *)
          Mips.JR (RA,[]),
 
 (*
