@@ -23,8 +23,8 @@ main:
 # was:	sll	_5_, _5_, 2
 	add	$3, $3, $2
 # was:	add	_5_, _5_, a_1_
-	ori	$4, $0, 0
-# was:	ori	_assign__4_, 0, 0
+	ori	$4, $0, 1
+# was:	ori	_assign__4_, 0, 1
 	sw	$4, 0($3)
 # was:	sw	_assign__4_, 0(_5_)
 # 	ori	0,_assign__4_,0
@@ -34,8 +34,8 @@ main:
 # was:	sll	_7_, _7_, 2
 	add	$3, $3, $2
 # was:	add	_7_, _7_, a_1_
-	ori	$4, $0, 1
-# was:	ori	_assign__6_, 0, 1
+	ori	$4, $0, 2
+# was:	ori	_assign__6_, 0, 2
 	sw	$4, 0($3)
 # was:	sw	_assign__6_, 0(_7_)
 # 	ori	0,_assign__6_,0
@@ -45,8 +45,8 @@ main:
 # was:	sll	_9_, _9_, 2
 	add	$3, $3, $2
 # was:	add	_9_, _9_, a_1_
-	ori	$4, $0, 2
-# was:	ori	_assign__8_, 0, 2
+	ori	$4, $0, 3
+# was:	ori	_assign__8_, 0, 3
 	sw	$4, 0($3)
 # was:	sw	_assign__8_, 0(_9_)
 # 	ori	0,_assign__8_,0
@@ -56,14 +56,29 @@ main:
 # was:	sll	_11_, _11_, 2
 	add	$3, $3, $2
 # was:	add	_11_, _11_, a_1_
-	ori	$2, $0, 3
-# was:	ori	_assign__10_, 0, 3
-	sw	$2, 0($3)
+	ori	$4, $0, 4
+# was:	ori	_assign__10_, 0, 4
+	sw	$4, 0($3)
 # was:	sw	_assign__10_, 0(_11_)
 # 	ori	0,_assign__10_,0
+	ori	$4, $0, 1
+# was:	ori	_plus1__14_, 0, 1
+	ori	$3, $0, 3
+# was:	ori	_plus2__15_, 0, 3
+	add	$3, $4, $3
+# was:	add	_13_, _plus1__14_, _plus2__15_
+	sll	$3, $3, 2
+# was:	sll	_13_, _13_, 2
+	add	$3, $3, $2
+# was:	add	_13_, _13_, a_1_
+	ori	$2, $0, 5
+# was:	ori	_assign__12_, 0, 5
+	sw	$2, 0($3)
+# was:	sw	_assign__12_, 0(_13_)
+# 	ori	0,_assign__12_,0
 	ori	$2, $0, 1
-# was:	ori	_return__12_, 0, 1
-# 	ori	2,_return__12_,0
+# was:	ori	_return__16_, 0, 1
+# 	ori	2,_return__16_,0
 	j	main_exit
 main_exit:
 	lw	$16, 0($29)
